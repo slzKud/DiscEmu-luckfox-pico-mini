@@ -1,6 +1,6 @@
 # DiscEmu
 
-A CD-ROM drive emulator based on Linux USB Gadget, on the Milk-V Duo (Original CV1800B variant) board.
+A CD-ROM drive emulator based on Linux USB Gadget, on the Milk-V Duo (CV1800B(64M Model) and SG2000 variant(256M Model)) board.
 
 Currently at prototype stage.
 
@@ -18,17 +18,19 @@ Pinout:
 |---------|------|
 |OLED MOSI| 10   |
 |OLED SCK | 9    |
-|OLED RES | 22   |
-|OLED DC  | 21   |
-|EC11 S1  | 20   |
-|EC11 S2  | 19   |
-|EC11 KEY | 18   |
+|OLED RES | 29   |
+|OLED DC  | 27   |
+|EC11 S1  | 26   |
+|EC11 S2  | 25   |
+|EC11 KEY | 24   |
 
 ## Build
 
-You can build this with the official SDK.
+You can build this with the [official SDK](https://github.com/milkv-duo/host-tools).
 
-This app depends on the libu8g2arm library, please use [my fork](https://github.com/driver1998/libu8g2arm-milkvduo) with Milk-V Duo GPIO pin number mapping. (GPIO pin number of Duo in Linux userspace are three digits, which break assumptions in libu8g2arm. A lookup table which maps Linux pin number to actual physical pin number is added as a workaround.) 
+This app depends on the libu8g2arm library, please use [my fork(for 256M Model)](https://github.com/slzkud/libu8g2arm-milkvduo-256m) or [driver1998 fork(for 64M Model)](https://github.com/driver1998/libu8g2arm-milkvduo) with Milk-V Duo GPIO pin number mapping. (GPIO pin number of Duo in Linux userspace are three digits, which break assumptions in libu8g2arm. A lookup table which maps Linux pin number to actual physical pin number is added as a workaround.) 
+
+Change makefile with the new TOOLCHAIN_PREFIX and U8G2_PREFIX, and use make to compile program.
 
 ## Usage
 
