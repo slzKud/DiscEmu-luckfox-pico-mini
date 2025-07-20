@@ -231,7 +231,8 @@ int main(void) {
   }
 
   u8x8_t *p_u8x8 = u8g2_GetU8x8(&u8g2);
-
+  #ifndef I2C_DISPLAY
+  std::cout <<"spi mode,spi number 0" << std::endl;
   const int RES_PIN = 22;
   const int DC_PIN = 21;
   u8g2_Setup_ssd1306_128x64_noname_f(&u8g2, U8G2_R0, u8x8_byte_arm_linux_hw_spi,
@@ -249,8 +250,25 @@ int main(void) {
     std::cout << "failed to initialize display" << std::endl;
     return 1;
   }
+  #else
+  std::cout <<"i2c mode,i2c number 0" << std::endl;
+  u8g2_Setup_ssd1306_i2c_128x64_noname_f(&u8g2, U8G2_R0, u8x8_byte_arm_linux_hw_i2c,
+                                     u8x8_arm_linux_gpio_and_delay);
 
+  u8x8_SetPin(p_u8x8, U8X8_PIN_I2C_CLOCK, U8X8_PIN_NONE);
+  u8x8_SetPin(p_u8x8, U8X8_PIN_I2C_DATA, U8X8_PIN_NONE);
+  u8x8_SetPin(p_u8x8, U8X8_PIN_RESET, U8X8_PIN_NONE);
+
+  success = u8g2arm_arm_init_hw_i2c(p_u8x8, 0); // I2C 0
+  if (!success) {
+    std::cout << "failed to initialize display" << std::endl;
+    return 1;
+  }
+  #endif
   u8x8_InitDisplay(p_u8x8);
+  #ifndef I2C_DISPLAY
+  u8g2_ClearDisplay(&u8g2);
+  #endif
   u8x8_SetPowerSave(p_u8x8, 0);
   u8g2_SetFont(&u8g2, u8g2_font_6x13_tf); // choose a suitable font
 

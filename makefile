@@ -6,6 +6,33 @@ CFLAGS+= -I${U8G2_PREFIX}/include
 LDFLAGS+= -L${U8G2_PREFIX}/lib -static
 LDLIBS+=-l:libu8g2arm.a
 
+ifeq (,$(I2C_DISPLAY))
+I2C_DISPLAY=0
+endif
+
+ifeq (,$(KEYPAD_INPUT))
+KEYPAD_INPUT=0
+endif
+
+ifeq (,$(USB_ON))
+USB_ON=1
+endif
+
+ifeq (1,$(USB_ON))
+CXXFLAGS+= -DUSB_ON
+CFLAGS+= -DUSB_ON
+endif
+
+ifeq (1,$(KEYPAD_INPUT))
+CXXFLAGS+= -DI2C_DISPLAY
+CFLAGS+= -DI2C_DISPLAY
+endif
+
+ifeq (1,$(KEYPAD_INPUT))
+CXXFLAGS+= -DKEYPAD_INPUT
+CFLAGS+= -DKEYPAD_INPUT
+endif
+
 CC = $(TOOLCHAIN_PREFIX)gcc
 CXX = $(TOOLCHAIN_PREFIX)g++
 

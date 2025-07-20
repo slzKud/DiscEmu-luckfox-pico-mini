@@ -17,14 +17,14 @@ std::atomic<InputValue> input_value = InputValue::Unknown;
 std::atomic_bool thread_stop = false;
 
 void *input_thread_func() {
-  int ss1 = 0, skey = 0;
+  int ss1 = 0, ss2 = 0, skey = 0;
   int s1 = 0, s2 = 0, key = 0;
 
   while (!thread_stop) {
     s1 = getGPIOValue(ROT_S1);
     s2 = getGPIOValue(ROT_S2);
     key = getGPIOValue(ROT_KEY);
-
+    #ifndef KEYPAD_INPUT
     if (ss1 != s1 && !s1) {
       if (s1 != s2) {
         input_value.store(InputValue::Up);
@@ -37,6 +37,21 @@ void *input_thread_func() {
     ss1 = s1;
     skey = key;
     usleep(5000);
+    #else
+    if(ss1!=s1 && !s1){
+      input_value.store(InputValue::Up);
+    }
+    if(ss2!=s2 && !s2){
+      input_value.store(InputValue::Down);
+    }
+    if(skey!=key && !key){
+      input_value.store(InputValue::Enter);
+    }
+    ss1=s1;
+    skey=key;
+    ss2=s2;
+    usleep(5000);
+    #endif
   }
   return nullptr;
 }
