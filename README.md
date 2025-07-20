@@ -9,20 +9,42 @@ Currently at prototype stage.
 ## Hardware info
 
 - Milk-V Duo board
-- SSD1306 SPI 128x64 OLED
-- EC11 rotary encoder
+- SSD1306 SPI/I2C 128x64 OLED
+- EC11 rotary encoder / 3 * GPIO Button
+### Pinout
 
-Pinout: 
+**Default Use SPI OLED and EC11.**
 
-|Function | Pin# |
-|---------|------|
-|OLED MOSI| 10   |
-|OLED SCK | 9    |
-|OLED RES | 29   |
-|OLED DC  | 27   |
-|EC11 S1  | 26   |
-|EC11 S2  | 25   |
-|EC11 KEY | 24   |
+SPI OLED Pinout: 
+
+|Function | Pin# | GP#  |
+|---------|------|------|
+|OLED MOSI| 10   | GP7  |
+|OLED SCK | 9    | GP6  |
+|OLED RES | 29   | GP22 |
+|OLED DC  | 27   | GP21 |
+
+I2C OLED Pinout: 
+
+|Function | Pin# | GP#  |
+|---------|------|------|
+|OLED SCL | 1    | GP0  |
+|OLED SDA | 2    | GP1  |
+
+GPIO Pinout:
+|Function | Pin# | GP#  |
+|---------|------|------|
+|Up Btn   | 26   | GP20 |
+|Down Btn | 25   | GP19 |
+|Enter Btn| 24   | GP18 |
+
+EC11 Pinout:
+|Function | Pin# | GP#  |
+|---------|------|------|
+|EC11 S1  | 26   | GP20 |
+|EC11 S2  | 25   | GP19 |
+|EC11 KEY | 24   | GP18 |
+
 
 ## Build
 
@@ -30,7 +52,11 @@ You can build this with the [official SDK](https://github.com/milkv-duo/host-too
 
 This app depends on the libu8g2arm library, please use [my fork(for 256M Model)](https://github.com/slzkud/libu8g2arm-milkvduo-256m) or [driver1998 fork(for 64M Model)](https://github.com/driver1998/libu8g2arm-milkvduo) with Milk-V Duo GPIO pin number mapping. (GPIO pin number of Duo in Linux userspace are three digits, which break assumptions in libu8g2arm. A lookup table which maps Linux pin number to actual physical pin number is added as a workaround.) 
 
-Change makefile with the new TOOLCHAIN_PREFIX and U8G2_PREFIX, and use make to compile program.
+Change makefile with the new TOOLCHAIN_PREFIX and U8G2_PREFIX, and use ``make`` to compile program.
+
+- If you need to use I2C OLED and GPIO Button, use ``make KEYPAD_INPUT=1 I2C_DISPLAY=1`` to compile program.
+
+- If you need to disable USB because need to debug, use ``make USB_ON=0`` to compile program. 
 
 ## Usage
 
