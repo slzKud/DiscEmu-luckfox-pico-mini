@@ -9,7 +9,7 @@ Currently at prototype stage.
 ## Hardware info
 
 - Milk-V Duo board
-- SSD1306 SPI/I2C 128x64 OLED
+- SSD1306 SPI 128x64 OLED **(256M and 64M)**/SSD1306 I2C 128x64 OLED **(64M only)**
 - EC11 rotary encoder / 3 * GPIO Button
 ### Pinout
 
@@ -24,7 +24,7 @@ SPI OLED Pinout:
 |OLED RES | 29   | GP22 |
 |OLED DC  | 27   | GP21 |
 
-I2C OLED Pinout: 
+I2C OLED Pinout **(64M only)**: 
 
 |Function | Pin# | GP#  |
 |---------|------|------|
