@@ -46,3 +46,9 @@ void usb_gadget_add_rndis() {
     system("./run_usb.sh probe rndis");
 #endif
 }
+
+void usb_gadget_add_mtp() {
+#ifdef USB_ON
+    system("./run_usb.sh probe mtp");
+#endif
+}

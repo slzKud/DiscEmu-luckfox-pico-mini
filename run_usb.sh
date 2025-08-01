@@ -9,13 +9,17 @@ ADB_VID=0x18D1
 ADB_PID=0x4EE0
 ADB_PID_M1=0x4EE2
 ADB_PID_M2=0x4EE4
+MTP_VID=0x1D6B
+MTP_PID=0x0100
 MANUFACTURER="Cvitek"
 PRODUCT="USB Com Port"
 PRODUCT_RNDIS="RNDIS"
 PRODUCT_UVC="UVC"
 PRODUCT_UAC="UAC"
 PRODUCT_ADB="ADB"
+PRODUCT_MTP="MTP"
 ADBD_PATH=/usr/bin/
+UMTPRD_PATH=/usr/bin/
 SERIAL="0123456789"
 MSC_FILE=$3
 CVI_DIR=/tmp/usb
@@ -65,10 +69,16 @@ case "$2" in
 	VID=$ADB_VID
 	PID=$ADB_PID
 	PRODUCT=$PRODUCT_ADB
+  ;;
+  mtp)
+	CLASS=ffs.mtp
+	VID=$MTP_VID
+	PID=$MTP_PID
+	PRODUCT=$PRODUCT_MTP
 	;;
   *)
 	if [ "$1" = "probe" ] ; then
-	  echo "Usage: $0 probe {acm|msc|cdrom|cvg|rndis|uvc|uac1|adb} {file (msc|cdrom)}"
+	  echo "Usage: $0 probe {acm|msc|cdrom|cvg|rndis|uvc|uac1|adb|mtp} {file (msc|cdrom)}"
 	  exit 1
 	fi
 esac
@@ -110,6 +120,10 @@ res_check() {
   EP_IN=$(($EP_IN+$TMP_NUM))
   EP_OUT=$(($EP_OUT+$TMP_NUM))
   INTF_NUM=$(($INTF_NUM+$TMP_NUM))
+  TMP_NUM=$(find $CVI_GADGET/functions/ -name ffs.mtp | wc -l)
+  EP_IN=$(($EP_IN+$TMP_NUM))
+  EP_OUT=$(($EP_OUT+$TMP_NUM))
+  INTF_NUM=$(($INTF_NUM+$TMP_NUM))
 
   if [ "$CLASS" = "acm" ] ; then
     EP_IN=$(($EP_IN+2))
@@ -135,6 +149,10 @@ res_check() {
     EP_OUT=$(($EP_OUT+1))
   fi
   if [ "$CLASS" = "ffs.adb" ] ; then
+    EP_IN=$(($EP_IN+1))
+    EP_OUT=$(($EP_OUT+1))
+  fi
+  if [ "$CLASS" = "ffs.mtp" ] ; then
     EP_IN=$(($EP_IN+1))
     EP_OUT=$(($EP_OUT+1))
   fi
@@ -198,7 +216,11 @@ probe() {
     fi
     mkdir $CVI_GADGET/functions/$CLASS
   else
-    mkdir $CVI_GADGET/functions/$CLASS.usb$FUNC_NUM
+    if [ "$CLASS" = "ffs.mtp" ] ; then
+      mkdir $CVI_GADGET/functions/$CLASS
+    else
+      mkdir $CVI_GADGET/functions/$CLASS.usb$FUNC_NUM
+    fi
   fi
   if [ "$CLASS" = "mass_storage" ] ; then
     if [ $MSC_CDROM -eq 1 ]; then
@@ -237,16 +259,28 @@ start() {
   if [ -d $CVI_GADGET/functions/ffs.adb ]; then
     FUNC_NUM=$(($FUNC_NUM-1))
   fi
+  if [ -d $CVI_GADGET/functions/ffs.mtp ]; then
+    FUNC_NUM=$(($FUNC_NUM-1))
+  fi
   for i in `seq 0 $(($FUNC_NUM-1))`;
   do
     find $CVI_GADGET/functions/ -name "*.usb$i" | xargs -I % ln -s % $CVI_GADGET/configs/c.1
   done
+  if [ -d $CVI_GADGET/functions/ffs.mtp ]; then
+    ln -s $CVI_GADGET/functions/ffs.mtp $CVI_GADGET/configs/c.1
+    mkdir -p /dev/usb-ffs/mtp
+    mount -t functionfs mtp /dev/usb-ffs/mtp
+    if [ -f /usr/bin/umtprd ]; then
+	    umtprd &
+    fi
+    sleep 3
+  fi
   if [ -d $CVI_GADGET/functions/ffs.adb ]; then
     ln -s $CVI_GADGET/functions/ffs.adb $CVI_GADGET/configs/c.1
     mkdir /dev/usb-ffs/adb -p
     mount -t functionfs adb /dev/usb-ffs/adb
     if [ -f $ADBD_PATH/adbd ]; then
-	$ADBD_PATH/adbd &
+	    $ADBD_PATH/adbd &
     fi
   else
     # Start the gadget driver
@@ -257,10 +291,14 @@ start() {
 
 stop() {
   if [ -d $CVI_GADGET/configs/c.1/ffs.adb ]; then
-    pkill adbd
+    killall adbd
     rm $CVI_GADGET/configs/c.1/ffs.adb
   else
     echo "" >$CVI_GADGET/UDC
+  fi
+  if [ -d $CVI_GADGET/configs/c.1/ffs.mtp ]; then
+    killall umtprd
+    rm $CVI_GADGET/configs/c.1/ffs.mtp
   fi
   find $CVI_GADGET/configs/ -name "*.usb*" | xargs rm -f
   rmdir $CVI_GADGET/configs/c.*/strings/0x409/
@@ -293,7 +331,7 @@ case "$1" in
 	ls /sys/class/udc/ >$CVI_GADGET/UDC
 	;;
   *)
-	echo "Usage: $0 probe {acm|msc|cdrom|cvg|uvc|uac1} {file (msc|cdrom)}"
+	echo "Usage: $0 probe {acm|msc|cdrom|cvg|uvc|uac1|mtp} {file (msc|cdrom)}"
 	echo "Usage: $0 start"
 	echo "Usage: $0 stop"
 	exit 1

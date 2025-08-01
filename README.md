@@ -75,6 +75,8 @@ cd $OLD_PWD
 
 - Disable RNDIS at boot up by removing `/mnt/system/usb.sh` to avoid conflicts. You can start RNDIS at the main menu of DiscEmu.
 
+- If you need to use "File Transfer", you need to compile [uMTP-Responder](https://github.com/viveris/uMTP-Responder). After compiling, place the compiled `umtprd` in `/usr/bin` and the [`umtprd.conf`](umtprd/umtprd.conf) in `/etc/umtprd`.
+
 - DiscEmu looks for ISO images at `isos` in the working directory, so `/mnt/data/isos` as configured above. You might want to mount a partition with large enough space to this directory.
 
 - Due to Linux kernel limitations, DVD images are not fully supported. Also there is a ~2.2GiB file size limit, there is a third-party patch to bypass this, see https://lkml.org/lkml/2015/3/7/388 for more details.

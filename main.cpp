@@ -24,6 +24,7 @@ const std::string version = "0.1.0";
 u8g2_t u8g2 = {};
 
 int action_rndis(std::any arg);
+int action_mtp(std::any arg);
 int action_cdrom_emu(std::any arg);
 int action_file_browser(std::any arg);
 int action_status(std::any arg);
@@ -37,12 +38,11 @@ std::vector<MenuItem> main_menu = {
     MenuItem{.name = "Image Browser",
              .action = action_file_browser,
              .action_arg = iso_root},
+    MenuItem{.name = "File Transfer", .action = action_mtp},
     MenuItem{.name = "USB RNDIS", .action = action_rndis},
     MenuItem{.name = "Status", .action = action_status},
-    MenuItem{.name = "", .action = action_do_nothing},
     MenuItem{.name = "Shutdown", .action = action_shutdown},
-    MenuItem{.name = "Restart", .action = action_restart},
-    MenuItem{.name = "", .action = action_do_nothing}};
+    MenuItem{.name = "Restart", .action = action_restart}};
 
 void reset_disc_emu() {
   usb_gadget_stop();
@@ -188,7 +188,37 @@ int action_rndis(std::any arg) {
   menu_run(&rndis_menu, &u8g2);
   return 0;
 }
+int action_mtp(std::any arg) {
+  if (!std::filesystem::exists("/usr/bin/umtprd") || !std::filesystem::exists("/etc/umtprd/umtprd.conf")) {
+    action_errmsg(std::string("unable to open MTP."));
+    return 0;
+  }
+  u8g2_ClearBuffer(&u8g2);
+  u8g2_SetDrawColor(&u8g2, 1);
+  u8g2_DrawStr(&u8g2, 0, 28, "Initializing...");
+  u8g2_SendBuffer(&u8g2);
 
+  usb_gadget_stop();
+  usb_gadget_add_mtp();
+  usb_gadget_start();
+
+  Menu mtp_menu { .title = "File Transfer" };
+  std::vector<MenuItem> mtp_menu_items = {      
+      MenuItem{.name = "Now you can transfer file via USB.", .action = action_do_nothing},      
+      MenuItem{.name = "Back to menu",
+               .action =
+                   [](std::any) {
+                     usb_gadget_stop();
+                     reset_disc_emu();
+                     usleep(500 * 1000);
+                     return -1;
+                   }},
+      MenuItem{.name = "", .action = action_do_nothing},
+  };
+  menu_init(&mtp_menu, &mtp_menu_items);
+  menu_run(&mtp_menu, &u8g2);
+  return 0;
+}
 int action_shutdown(std::any arg) {
   u8g2_ClearBuffer(&u8g2);
   u8g2_SetDrawColor(&u8g2, 1);
