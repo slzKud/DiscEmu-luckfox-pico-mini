@@ -11,6 +11,7 @@
 typedef struct {
     std::string name;
     std::function<int(std::any)> action;
+    std::function<int(std::any)> long_action; //长按处理
     std::any action_arg;
 } MenuItem;
 

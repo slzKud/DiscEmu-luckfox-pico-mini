@@ -6,7 +6,8 @@ typedef enum {
     Up = 1,
     Down = 2,
     Enter = 3,
-    Back = 4
+    Back = 4,
+    LongEnter = 5,
 } InputValue;
 
 int input_init();

@@ -127,6 +127,7 @@ int action_file_browser(std::any arg) {
       if (ext == ".iso" || ext == ".img") {
         iso_menu_items.push_back(MenuItem{.name = entry_path.filename(),
                                           .action = action_disk_emu,
+                                          .long_action = action_errmsg,
                                           .action_arg = entry.path()});
       }
     }
@@ -150,6 +151,8 @@ int action_status(std::any arg) {
   Menu status_menu { .title = "Status" };
   std::vector<MenuItem> status_menu_items = {      
       MenuItem{.name = "Version: " + version},
+      MenuItem{.name = "Total: 16 GB"},
+      MenuItem{.name = "Free Space: 8 GB"},
   };
 
   for (auto const &pair : ip_map) {

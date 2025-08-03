@@ -168,6 +168,20 @@ int menu_run(Menu *menu, u8g2_t *display) {
         return 0;
       }
     }
+    case LongEnter: {
+      MenuItem curr = menu->items->at(menu->curr_index);
+      if (curr.long_action) {
+        redraw = true;
+        int result = curr.long_action(curr.action_arg);
+        redraw = true;
+        if (result < 0) {
+          return result + 1;
+        }
+        break;
+      } else {
+        return 0;
+      }
+    }
     case Back:
       return 0;
     default:

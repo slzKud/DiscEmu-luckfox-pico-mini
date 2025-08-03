@@ -1,6 +1,7 @@
 #include <atomic>
 #include <thread>
 #include <unistd.h>
+#include <chrono>  // 添加时间库
 
 #include "input.h"
 
@@ -16,51 +17,88 @@ std::thread input_thread;
 std::atomic<InputValue> input_value = InputValue::Unknown;
 std::atomic_bool thread_stop = false;
 
-void *input_thread_func() {
-  int ss1 = 0, ss2 = 0, skey = 0;
-  int s1 = 0, s2 = 0, key = 0;
+// 长按时间阈值（毫秒）
+constexpr std::chrono::milliseconds LONG_PRESS_THRESHOLD(500);
 
-  while (!thread_stop) {
-    s1 = getGPIOValue(ROT_S1);
-    s2 = getGPIOValue(ROT_S2);
-    key = getGPIOValue(ROT_KEY);
-    #ifndef KEYPAD_INPUT
-    if (ss1 != s1 && !s1) {
-      if (s1 != s2) {
-        input_value.store(InputValue::Up);
-      } else {
-        input_value.store(InputValue::Down);
-      }
+void *input_thread_func() {
+    int ss1 = 0, ss2 = 0, skey = 0;
+    int s1 = 0, s2 = 0, key = 0;
+    
+    // 按键状态跟踪变量
+    bool key_active = false;
+    std::chrono::steady_clock::time_point press_start_time;
+
+    while (!thread_stop) {
+        s1 = getGPIOValue(ROT_S1);
+        s2 = getGPIOValue(ROT_S2);
+        key = getGPIOValue(ROT_KEY);
+
+        // 按键检测逻辑
+        if (skey != key) {
+            if (!key) { // 按键按下
+                key_active = true;
+                press_start_time = std::chrono::steady_clock::now();
+            } else {    // 按键释放
+                if (key_active) {
+                    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::steady_clock::now() - press_start_time
+                    );
+                    
+                    if (duration < LONG_PRESS_THRESHOLD) {
+                        input_value.store(InputValue::Enter);
+                    }
+                    key_active = false;
+                }
+            }
+        }
+        
+        // 长按检测
+        if (key_active) {
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - press_start_time
+            );
+            
+            if (duration >= LONG_PRESS_THRESHOLD) {
+                input_value.store(InputValue::LongEnter);
+                key_active = false; // 防止重复触发
+            }
+        }
+
+#ifndef KEYPAD_INPUT
+        // 旋转编码器处理
+        if (ss1 != s1 && !s1) {
+            if (s1 != s2) {
+                input_value.store(InputValue::Up);
+            } else {
+                input_value.store(InputValue::Down);
+            }
+        }
+        ss1 = s1;
+        skey = key; // 更新按键状态
+        usleep(5000);
+#else
+        // 独立按键处理
+        if (ss1 != s1 && !s1) {
+            input_value.store(InputValue::Up);
+        }
+        if (ss2 != s2 && !s2) {
+            input_value.store(InputValue::Down);
+        }
+        ss1 = s1;
+        ss2 = s2;
+        skey = key; // 更新按键状态
+        usleep(5000);
+#endif
     }
-    if (skey != key && !key)
-      input_value.store(InputValue::Enter);
-    ss1 = s1;
-    skey = key;
-    usleep(5000);
-    #else
-    if(ss1!=s1 && !s1){
-      input_value.store(InputValue::Up);
-    }
-    if(ss2!=s2 && !s2){
-      input_value.store(InputValue::Down);
-    }
-    if(skey!=key && !key){
-      input_value.store(InputValue::Enter);
-    }
-    ss1=s1;
-    skey=key;
-    ss2=s2;
-    usleep(5000);
-    #endif
-  }
-  return nullptr;
+    return nullptr;
 }
+
 
 InputValue input_get() { return input_value.exchange(InputValue::Unknown); }
 
 void input_wait_enter() {
   InputValue i = Unknown;
-  while (i != Back && i != Enter) {
+  while (i != Back && i != Enter && i != LongEnter) {
     sleep(0);
     i = input_get();
   }
