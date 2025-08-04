@@ -17,8 +17,14 @@ constexpr int SCREEN_HEIGHT = 64;
 constexpr int ITEM_HEIGHT = (SCREEN_HEIGHT - TITLE_HEIGHT) / PAGE_SIZE;
 
 time_t current_time = time(nullptr);
+bool forceDisplay = false;
 bool screen_clear = false;
 bool redraw = true;
+
+void menu_clear_off_on(bool clear){
+  screen_clear=true;
+  forceDisplay=!clear;
+}
 
 void menu_init(Menu *menu, std::vector<MenuItem> *items) {
   menu->items = items;
@@ -132,7 +138,7 @@ int menu_run(Menu *menu, u8g2_t *display) {
           !menu->active_scroll) {
         menu->active_scroll = true;
       }
-      if (now - current_time > 60 && !screen_clear) {
+      if (now - current_time > 60 && !screen_clear && !forceDisplay) {
         u8g2_ClearDisplay(display);
         screen_clear = true;
         std::cout << "clear the display to avoid burn in" << std::endl;
@@ -179,7 +185,7 @@ int menu_run(Menu *menu, u8g2_t *display) {
         }
         break;
       } else {
-        return 0;
+        break;
       }
     }
     case Back:

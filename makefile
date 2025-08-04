@@ -44,8 +44,8 @@ default: disc-emu
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-disc-emu: main.o menu.o input.o usb.o network.o
-	$(CXX) $(LDFLAGS)  main.o menu.o input.o usb.o network.o $(LDLIBS) -o disc-emu
+disc-emu: main.o menu.o input.o usb.o network.o util.o
+	$(CXX) $(LDFLAGS)  main.o menu.o input.o usb.o network.o util.o $(LDLIBS) -o disc-emu
 
 clean:
 	rm *.o disc-emu

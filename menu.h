@@ -25,7 +25,7 @@ typedef struct {
     bool active_need_scroll;
     int active_x;
 } Menu;
-
+void menu_clear_off_on(bool clear);
 void menu_init(Menu* menu, std::vector<MenuItem>* items);
 void menu_draw(Menu* menu, u8g2_t* display);
 int menu_run(Menu* menu, u8g2_t* display);
