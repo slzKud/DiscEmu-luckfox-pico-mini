@@ -12,7 +12,7 @@ void usb_switch_to_device_mode() {
 void usb_gadget_add_msc(std::filesystem::path block_dev) {
 #ifdef USB_ON
     std::filesystem::path path_absolute = std::filesystem::absolute(block_dev);
-    //system(("./run_usb.sh probe msc '" + path_absolute.string() + "'").c_str());
+    system(("./run_usb.sh probe msc '" + path_absolute.string() + "'").c_str());
 #endif
 }
 
