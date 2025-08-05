@@ -22,7 +22,10 @@ bool screen_clear = false;
 bool redraw = true;
 
 void menu_clear_off_on(bool clear){
-  screen_clear=true;
+  if(clear){ // if close menu clear
+    screen_clear=true; // restore clear flag
+    redraw=true; // force redraw
+  }
   forceDisplay=!clear;
 }
 
@@ -138,10 +141,15 @@ int menu_run(Menu *menu, u8g2_t *display) {
           !menu->active_scroll) {
         menu->active_scroll = true;
       }
-      if (now - current_time > 60 && !screen_clear && !forceDisplay) {
-        u8g2_ClearDisplay(display);
-        screen_clear = true;
-        std::cout << "clear the display to avoid burn in" << std::endl;
+      if (now - current_time > 60 && (!screen_clear)) {
+        if(forceDisplay==true){
+          screen_clear=false;
+          current_time=time(nullptr);
+        }else{
+          u8g2_ClearDisplay(display);
+          screen_clear = true;
+          std::cout << "clear the display to avoid burn in" << std::endl;
+        }
       }
     }
 

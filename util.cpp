@@ -6,11 +6,12 @@
 #include <filesystem>
 #include <regex>
 #include <optional>
+#include <sstream>
 #include <sys/statvfs.h>
 #include "util.h"
 
 namespace fs = std::filesystem;
-constexpr double BYTES_TO_GB = 1000.0 * 1000.0 * 1000.0;
+constexpr double BYTES_TO_GB = 1024.0 * 1024.0 * 1024.0;
 
 bool getDiskSpace(const std::string& path,DiskSpaceInfo& disk_info) {
     struct statvfs vfs;
@@ -74,6 +75,20 @@ std::string getDiskImageFilename(const std::string& path,const std::string& suff
     }
     
     // 生成新文件名
-    std::string new_filename = "Disk_" + std::to_string(next_number) + "_" + suffix + ".img";
+    std::string new_filename = "Disk_" + fillZero(next_number,2) + "_" + suffix + ".img";
     return new_filename;
+}
+
+std::string roundNumber(double rounded_number,int bit_len){
+    std::ostringstream oss;
+    oss << std::fixed 
+    << std::setprecision(bit_len) 
+    << rounded_number;
+    return oss.str();
+}
+
+std::string fillZero(int rounded_number,int bit_len){
+    std::ostringstream oss;
+    oss << std::setw(bit_len) << std::setfill('0') << static_cast<int>(rounded_number);
+    return oss.str();
 }

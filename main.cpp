@@ -21,7 +21,7 @@
 #include "usb.h"
 #include "util.h"
 
-const std::string version = "0.1.3";
+const std::string version = "0.1.4";
 u8g2_t u8g2 = {};
 
 typedef enum{
@@ -185,7 +185,6 @@ int action_create_image(std::any arg) {
     #ifdef USB_ON
     menu_clear_off_on(false);
     system(("./make_fat32_img.sh "+ image_info.name +" "+std::to_string(image_info.size) +" GB").c_str());
-    menu_clear_off_on(true);
     #else
     sleep(3);
     #endif
@@ -199,6 +198,9 @@ int action_create_image(std::any arg) {
   }
   u8g2_SendBuffer(&u8g2);
   sleep(3);
+  #ifdef USB_ON
+  menu_clear_off_on(true);
+  #endif
   return action_main_menu(NULL);
 }
 
@@ -246,22 +248,22 @@ int action_create_image_select(std::any arg) {
     dir_menu_items.push_back(
         MenuItem{.name = "2 GB",
                       .action = action_create_image_confirm,
-                      .action_arg = 1});
+                      .action_arg = 2});
   if(disk_space.freeGB>4)
     dir_menu_items.push_back(
         MenuItem{.name = "4 GB",
                       .action = action_create_image_confirm,
-                      .action_arg = 1});
+                      .action_arg = 4});
   if(disk_space.freeGB>8)
     dir_menu_items.push_back(
         MenuItem{.name = "8 GB",
                       .action = action_create_image_confirm,
-                      .action_arg = 1});
+                      .action_arg = 8});
   if(disk_space.freeGB>16)
     dir_menu_items.push_back(
         MenuItem{.name = "16 GB",
                       .action = action_create_image_confirm,
-                      .action_arg = 1});
+                      .action_arg = 16});
   menu_init(&dir_menu, &dir_menu_items);
   menu_run(&dir_menu, &u8g2);
   return 0;
@@ -340,8 +342,8 @@ int action_status(std::any arg) {
       MenuItem{.name = "Version: " + version}
   };
   if(getDiskSpace("/",disk_space)){
-    status_menu_items.push_back(MenuItem{.name = "Total: "+std::to_string(disk_space.totalGB)+" GB"});
-    status_menu_items.push_back(MenuItem{.name = "Free Space: "+std::to_string(disk_space.freeGB)+" GB"});
+    status_menu_items.push_back(MenuItem{.name = "Total: "+roundNumber(disk_space.totalGB,2)+" GB"});
+    status_menu_items.push_back(MenuItem{.name = "Free Space: "+roundNumber(disk_space.freeGB,2)+" GB"});
   }
   for (auto const &pair : ip_map) {
     status_menu_items.push_back(MenuItem{.name = pair.first + " IP"});

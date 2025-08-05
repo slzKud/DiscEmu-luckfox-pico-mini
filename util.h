@@ -11,4 +11,6 @@ typedef struct {
 
 bool getDiskSpace(const std::string& path,DiskSpaceInfo& disk_info);
 std::string getDiskImageFilename(const std::string& path,const std::string& suffix);
+std::string roundNumber(double rounded_number,int bit_len);
+std::string fillZero(int rounded_number,int bit_len);
 #endif

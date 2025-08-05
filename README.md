@@ -64,7 +64,7 @@ Change makefile with the new TOOLCHAIN_PREFIX and U8G2_PREFIX, and use ``make`` 
 
 - `run_usb.sh` in this repo is modified from the official image, with CD-ROM support added, please use this verison with DiscEmu instead of the stock one.
 
-- Place `disc-emu` and `run_usb.sh` at `/mnt/data`, and make it start at boot up by creating `/mnt/data/auto.sh`
+- Place `disc-emu`,`run_usb.sh` and `make_fat32_img.sh` at `/mnt/data`, and make it start at boot up by creating `/mnt/data/auto.sh`
 
 ```bash
 OLD_PWD=$PWD
