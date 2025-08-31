@@ -1,4 +1,5 @@
-# DiscEmu
+# DiscEmu-luckfox-pico-mini
+
 
 A CD-ROM drive emulator based on Linux USB Gadget, on the [Luckfox Pico Mini](https://www.luckfox.com/Luckfox-Pico-Mini-A) (RV1103).
 
