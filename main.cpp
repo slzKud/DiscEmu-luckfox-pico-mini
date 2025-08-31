@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <any>
 #include <cstdarg>
-#include <filesystem>
 #include <iostream>
 #include <string>
 #include <string_view>
@@ -15,13 +14,17 @@
 #include <libu8g2arm/u8g2arm.h>
 #include <libu8g2arm/u8x8.h>
 
+#include <boost/filesystem.hpp>
+
 #include "input.h"
 #include "menu.h"
 #include "network.h"
 #include "usb.h"
 #include "util.h"
 
-const std::string version = "0.1.4";
+namespace fs = boost::filesystem;
+
+const std::string version = "0.1.5";
 u8g2_t u8g2 = {};
 
 typedef enum{
@@ -29,6 +32,14 @@ typedef enum{
   MB = 2,
   GB = 3
 } ImageSize;
+
+typedef enum{
+  NO_EMU,
+  RNDIS,
+  MTP,
+  MSD,
+  MSC,
+} EMUStatus;
 
 typedef struct {
     std::string name = "";
@@ -45,10 +56,12 @@ int action_file_browser(std::any arg);
 int action_status(std::any arg);
 int action_shutdown(std::any arg);
 int action_restart(std::any arg);
+int action_reset(std::any arg);
 int action_do_nothing(std::any arg);
 
 ImageInfo image_info;
-std::filesystem::path iso_root = std::filesystem::path("isos");
+EMUStatus emu_status=NO_EMU;
+fs::path iso_root = fs::path("isos");
 
 std::vector<MenuItem> main_menu = {
     MenuItem{.name = "Image Browser",
@@ -61,9 +74,30 @@ std::vector<MenuItem> main_menu = {
     MenuItem{.name = "Restart", .action = action_restart}};
 
 void reset_disc_emu() {
-  usb_gadget_stop();
-  usb_gadget_add_cdrom();
-  usb_gadget_start();
+  if(emu_status==NO_EMU){
+    // 如果当前没有模拟,则暂时不模拟东西（避免额外的重启）,或者只模拟MSC(存在标志文件时)
+    if(fs::exists("/etc/normal_msc.flag")){
+      emu_status=MSC;
+      usb_gadget_add_cdrom();
+      usb_gadget_start();
+      return;
+    }
+  }
+  if(emu_status==RNDIS || emu_status==MTP){
+    // 如果当前模拟的是RNDIS和MTP，则reset等于直接重启
+    action_reset(NULL);
+    return;
+  }
+  if(emu_status==MSD){
+    // 如果当前模拟的是USB磁盘，也直接重启，因为清除file之后就是一个空磁盘，没有意义。
+    action_reset(NULL);
+    return;
+  }
+  if(emu_status==MSC){
+    // 如果当前模拟的是USB光驱，只清除file。
+    system("echo "" > /sys/kernel/config/usb_gadget/rockchip/functions/mass_storage.0/lun.0/file");
+    return;
+  }
 }
 
 int action_main_menu(std::any arg) {
@@ -92,15 +126,21 @@ int action_errmsg(std::any arg) {
 }
 
 int action_disk_emu(std::any arg) {
-  auto path = std::any_cast<std::filesystem::path>(arg);
+  auto path = std::any_cast<fs::path>(arg);
 
   std::string ext = path.extension().string();
   std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
   
   usb_gadget_stop();
   if (ext == ".iso") {
+    emu_status=MSC;
     usb_gadget_add_cdrom(path);
   } else if (ext == ".img") {
+    if(emu_status==MSC){
+      system(("echo \""+ path.string()+"\" > /etc/msc.flag").c_str());
+      action_reset(NULL);
+    }
+    emu_status=MSD;
     usb_gadget_add_msc(path);
   }
   usb_gadget_start();
@@ -122,9 +162,9 @@ int action_disk_emu(std::any arg) {
   return 0;
 }
 int action_file_delete(std::any arg) {
-  auto path = std::any_cast<std::filesystem::path>(arg);
+  auto path = std::any_cast<fs::path>(arg);
   bool result = false;
-  bool file_or_folder=std::filesystem::is_directory(path);
+  bool file_or_folder=fs::is_directory(path);
   u8g2_ClearBuffer(&u8g2);
   u8g2_SetDrawColor(&u8g2, 1);
   u8g2_DrawStr(&u8g2, 0, 28, file_or_folder?"Deleting folder....":"Deleting file....");
@@ -132,12 +172,12 @@ int action_file_delete(std::any arg) {
   sleep(1);
   #ifdef USB_ON
   // TODO:Delete File.
-  if(!std::filesystem::is_directory(path)){
-    if(std::filesystem::remove(path)){
+  if(!fs::is_directory(path)){
+    if(fs::remove(path)){
       result=true;
     }
   }else{
-    if(std::filesystem::remove_all(path)>0){
+    if(fs::remove_all(path)>0){
       result=true;
     }
   }
@@ -158,8 +198,8 @@ int action_file_delete(std::any arg) {
   }
 }
 int action_file_delete_confirm(std::any arg) {
-  auto path = std::any_cast<std::filesystem::path>(arg);
-  Menu dir_menu { .title = std::filesystem::is_directory(path)?"Delele folder?":"Delete File?" };
+  auto path = std::any_cast<fs::path>(arg);
+  Menu dir_menu { .title = fs::is_directory(path)?"Delele folder?":"Delete File?" };
   std::vector<MenuItem> dir_menu_items;
   dir_menu_items.push_back(
       MenuItem{ .name = path.filename().string()});
@@ -191,7 +231,7 @@ int action_create_image(std::any arg) {
   }
   u8g2_ClearBuffer(&u8g2);
   u8g2_SetDrawColor(&u8g2, 1);
-  if(!std::filesystem::exists(std::filesystem::path(image_info.name))){
+  if(!fs::exists(fs::path(image_info.name))){
     u8g2_DrawStr(&u8g2, 0, 28, "Create image Failed.");
   }else{
     u8g2_DrawStr(&u8g2, 0, 28, create_aborted?"Action aborted.":"Create image OK.");
@@ -226,14 +266,14 @@ int action_create_image_confirm(std::any arg) {
   return 0;
 }
 int action_create_image_select(std::any arg) {
-  auto path = std::any_cast<std::filesystem::path>(arg);
+  auto path = std::any_cast<fs::path>(arg);
   std::cout << "action_create_image_select:path="<< path.string() << std::endl;
   image_info.path=path.string();
   image_info.per_size=GB;
   image_info.size=0;
   image_info.aborted=false;
   DiskSpaceInfo disk_space;
-  getDiskSpace("/",disk_space);
+  getDiskSpace("/mnt/sdcard",disk_space);
   Menu dir_menu { .title = "Choose Disk Size" };
   std::vector<MenuItem> dir_menu_items;
   dir_menu_items.push_back(
@@ -269,8 +309,8 @@ int action_create_image_select(std::any arg) {
   return 0;
 }
 int action_file_mamager(std::any arg) {
-  auto path = std::any_cast<std::filesystem::path>(arg);
-  Menu dir_menu { .title = std::filesystem::is_directory(path)?"Folder action":"File action" };
+  auto path = std::any_cast<fs::path>(arg);
+  Menu dir_menu { .title = fs::is_directory(path)?"Folder action":"File action" };
   std::vector<MenuItem> dir_menu_items;
   dir_menu_items.push_back(
       MenuItem{ .name = "Back",
@@ -282,14 +322,14 @@ int action_file_mamager(std::any arg) {
   dir_menu_items.push_back(
       MenuItem{.name = "Create disk image",
                     .action = action_create_image_select,
-                    .action_arg = std::filesystem::is_directory(path)?path:path.parent_path()});
+                    .action_arg = fs::is_directory(path)?path:path.parent_path()});
   menu_init(&dir_menu, &dir_menu_items);
   menu_run(&dir_menu, &u8g2);
   return 0;
 }
 int action_file_browser(std::any arg) {
-  auto path = std::any_cast<std::filesystem::path>(arg);
-  if (!std::filesystem::exists(path) || !std::filesystem::is_directory(path)) {
+  auto path = std::any_cast<fs::path>(arg);
+  if (!fs::exists(path) || !fs::is_directory(path)) {
     action_errmsg(std::string("Failed to open dir"));
     return 0;
   }
@@ -299,9 +339,9 @@ int action_file_browser(std::any arg) {
   Menu dir_menu { .title = path.filename().string() };
 
   dir_menu_items.push_back(MenuItem{.name = "[..]", .action = nullptr});
-  for (const auto &entry : std::filesystem::directory_iterator(path)) {
+  for (const auto &entry : fs::directory_iterator(path)) {
     std::string name;
-    std::filesystem::path entry_path = entry.path();
+    fs::path entry_path = entry.path();
     if (entry.is_directory()) {
       dir_menu_items.push_back(
           MenuItem{.name = '[' + entry_path.filename().string() + ']',
@@ -312,7 +352,7 @@ int action_file_browser(std::any arg) {
       std::string ext = entry_path.extension().string();
       std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
       if (ext == ".iso" || ext == ".img") {
-        iso_menu_items.push_back(MenuItem{.name = entry_path.filename(),
+        iso_menu_items.push_back(MenuItem{.name = entry_path.filename().string(),
                                           .action = action_disk_emu,
                                           .long_action = action_file_mamager,
                                           .action_arg = entry.path()});
@@ -341,7 +381,7 @@ int action_status(std::any arg) {
   std::vector<MenuItem> status_menu_items = {      
       MenuItem{.name = "Version: " + version}
   };
-  if(getDiskSpace("/",disk_space)){
+  if(getDiskSpace("/mnt/sdcard",disk_space)){
     status_menu_items.push_back(MenuItem{.name = "Total: "+roundNumber(disk_space.totalGB,2)+" GB"});
     status_menu_items.push_back(MenuItem{.name = "Free Space: "+roundNumber(disk_space.freeGB,2)+" GB"});
   }
@@ -356,17 +396,21 @@ int action_status(std::any arg) {
 }
 
 int action_rndis(std::any arg) {
+  if(emu_status==MSC){
+    system("touch /etc/rndis.flag");
+    action_reset(NULL);
+    return 0;
+  }
   u8g2_ClearBuffer(&u8g2);
   u8g2_SetDrawColor(&u8g2, 1);
   u8g2_DrawStr(&u8g2, 0, 28, "Initializing...");
   u8g2_SendBuffer(&u8g2);
-
+  emu_status=RNDIS;
   usb_gadget_stop();
   rndis_start();
-
   Menu rndis_menu { .title = "USB RNDIS" };
   std::vector<MenuItem> rndis_menu_items = {      
-      MenuItem{.name = "IP: 192.168.42.1", .action = action_do_nothing},      
+      MenuItem{.name = "IP: 172.32.0.70", .action = action_do_nothing},      
       MenuItem{.name = "Disconnect",
                .action =
                    [](std::any) {
@@ -382,15 +426,20 @@ int action_rndis(std::any arg) {
   return 0;
 }
 int action_mtp(std::any arg) {
-  if (!std::filesystem::exists("/usr/bin/umtprd") || !std::filesystem::exists("/etc/umtprd/umtprd.conf")) {
+  if (!fs::exists("/usr/sbin/umtprd") || !fs::exists("/etc/umtprd/umtprd.conf")) {
     action_errmsg(std::string("unable to open MTP."));
+    return 0;
+  }
+  if(emu_status==MSC){
+    system("touch /etc/mtp.flag");
+    action_reset(NULL);
     return 0;
   }
   u8g2_ClearBuffer(&u8g2);
   u8g2_SetDrawColor(&u8g2, 1);
   u8g2_DrawStr(&u8g2, 0, 28, "Initializing...");
   u8g2_SendBuffer(&u8g2);
-
+  emu_status=MTP;
   usb_gadget_stop();
   usb_gadget_add_mtp();
   usb_gadget_start();
@@ -433,14 +482,48 @@ int action_restart(std::any arg) {
   sleep(1000);
   return 0;
 }
+int action_reset(std::any arg) {
+  u8g2_ClearBuffer(&u8g2);
+  u8g2_SetDrawColor(&u8g2, 1);
+  u8g2_DrawStr(&u8g2, 0, 28, "Please wait...");
+  u8g2_SendBuffer(&u8g2);
+  system("reboot");
+  sleep(1000);
+  return 0;
+}
+void runonce(void){
+  if(fs::exists("/etc/rndis.flag")){
+    system("rm -rf /etc/rndis.flag");
+    action_rndis(NULL);
+    return;
+  }
+  if(fs::exists("/etc/mtp.flag")){
+    system("rm -rf /etc/mtp.flag");
+    action_mtp(NULL);
+    return;
+  }
+  if(fs::exists("/etc/msc.flag")){
+    std::string k=readFileIntoString("/etc/msc.flag");
+    std::cout << "msc.flag exist,check:" << k << ",done."
+              << std::endl;
+    if(fs::exists(k)){
+      std::cout << "file exists."
+              << std::endl;
+      system("rm -rf /etc/msc.flag");
+      action_disk_emu(fs::path(k));
+      return;
+    }
+  }
+  reset_disc_emu();
+  action_main_menu(NULL);
+  return;
+}
 
 int main(void) {
-  usb_switch_to_device_mode();
-  reset_disc_emu();
-
-  if (!std::filesystem::exists(iso_root)) {
-    std::filesystem::create_directory(iso_root);
-  } else if (!std::filesystem::is_directory(iso_root)) {
+  //usb_switch_to_device_mode();
+  if (!fs::exists(iso_root)) {
+    fs::create_directory(iso_root);
+  } else if (!fs::is_directory(iso_root)) {
     std::cout << "cannot create isos directory: file already exists"
               << std::endl;
     return 1;
@@ -474,7 +557,7 @@ int main(void) {
     return 1;
   }
   #else
-  std::cout <<"i2c mode,i2c number 0" << std::endl;
+  std::cout <<"i2c mode,i2c number "<< 3 << std::endl;
   u8g2_Setup_ssd1306_i2c_128x64_noname_f(&u8g2, U8G2_R0, u8x8_byte_arm_linux_hw_i2c,
                                      u8x8_arm_linux_gpio_and_delay);
 
@@ -482,7 +565,7 @@ int main(void) {
   u8x8_SetPin(p_u8x8, U8X8_PIN_I2C_DATA, U8X8_PIN_NONE);
   u8x8_SetPin(p_u8x8, U8X8_PIN_RESET, U8X8_PIN_NONE);
 
-  success = u8g2arm_arm_init_hw_i2c(p_u8x8, 0); // I2C 0
+  success = u8g2arm_arm_init_hw_i2c(p_u8x8, 3); // I2C 3
   if (!success) {
     std::cout << "failed to initialize display" << std::endl;
     return 1;
@@ -494,8 +577,8 @@ int main(void) {
   #endif
   u8x8_SetPowerSave(p_u8x8, 0);
   u8g2_SetFont(&u8g2, u8g2_font_6x13_tf); // choose a suitable font
-
-  action_main_menu(NULL);
+  
+  runonce();
 
   u8x8_ClearDisplay(p_u8x8);
   input_stop();

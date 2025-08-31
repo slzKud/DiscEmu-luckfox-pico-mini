@@ -3,14 +3,16 @@
 #include <string>
 #include <vector>
 #include <algorithm>
-#include <filesystem>
+#include <boost/filesystem.hpp>
 #include <regex>
 #include <optional>
 #include <sstream>
+#include <fstream>
+#include <algorithm>
 #include <sys/statvfs.h>
 #include "util.h"
 
-namespace fs = std::filesystem;
+namespace fs = boost::filesystem;
 constexpr double BYTES_TO_GB = 1024.0 * 1024.0 * 1024.0;
 
 bool getDiskSpace(const std::string& path,DiskSpaceInfo& disk_info) {
@@ -91,4 +93,22 @@ std::string fillZero(int rounded_number,int bit_len){
     std::ostringstream oss;
     oss << std::setw(bit_len) << std::setfill('0') << static_cast<int>(rounded_number);
     return oss.str();
+}
+
+std::string readFileIntoString(const std::string& filePath) {
+    std::ifstream file(filePath);
+    if (!file.is_open()) {
+        std::cerr << "Unable to open file: " << filePath << std::endl;
+        return ""; 
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    std::string content = buffer.str();
+    
+    // 移除所有换行符（包括\r和\n）
+    content.erase(std::remove_if(content.begin(), content.end(),
+        [](char c) { return c == '\r' || c == '\n'; }), content.end());
+    
+    return content;
 }

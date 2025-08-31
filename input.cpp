@@ -9,9 +9,15 @@ extern "C" {
 #include <libu8g2arm/gpio.h>
 }
 
-const int ROT_S1 = 20;
-const int ROT_S2 = 19;
-const int ROT_KEY = 18;
+#define GPIO_NUMBER(b,g,x) (b*32+g*8+x)
+#define GPIO_GROUP_A 0
+#define GPIO_GROUP_B 1
+#define GPIO_GROUP_C 2
+#define GPIO_GROUP_D 3
+
+const int ROT_S1 = GPIO_NUMBER(1,GPIO_GROUP_C,0);
+const int ROT_S2 = GPIO_NUMBER(1,GPIO_GROUP_C,1);
+const int ROT_KEY = GPIO_NUMBER(1,GPIO_GROUP_C,2);
 
 std::thread input_thread;
 std::atomic<InputValue> input_value = InputValue::Unknown;

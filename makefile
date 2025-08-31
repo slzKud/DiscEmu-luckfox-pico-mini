@@ -1,17 +1,18 @@
-TOOLCHAIN_PREFIX=/home/slzkud/duo256_project/host-tools-master/gcc/riscv64-linux-musl-x86_64/bin/riscv64-unknown-linux-musl-
-U8G2_PREFIX=/home/slzkud/duo256_project/libu8g2arm-milkvduo-256m/install
+TOOLCHAIN_PREFIX=/home/slzkud/new_sdk/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/bin/arm-rockchip830-linux-uclibcgnueabihf-
+U8G2_PREFIX=/home/slzkud/new_sdk/luckfox_project/libu8g2arm/install
+BOOST_PREFIX=/home/slzkud/new_sdk/luckfox_project/boost_1_88_0/install
 
-CXXFLAGS+=-I${U8G2_PREFIX}/include -std=c++17
-CFLAGS+= -I${U8G2_PREFIX}/include
-LDFLAGS+= -L${U8G2_PREFIX}/lib -static
-LDLIBS+=-l:libu8g2arm.a
+CXXFLAGS+=-I${U8G2_PREFIX}/include -I${BOOST_PREFIX}/include --std=c++17
+CFLAGS+= -I${U8G2_PREFIX}/include -I${BOOST_PREFIX}/include
+LDFLAGS+= -L${U8G2_PREFIX}/lib -L${BOOST_PREFIX}/lib --static --std=c++17
+LDLIBS+=-l:libu8g2arm.a -l:libboost_filesystem.a -l:libboost_system.a
 
 ifeq (,$(I2C_DISPLAY))
-I2C_DISPLAY=0
+I2C_DISPLAY=1
 endif
 
 ifeq (,$(KEYPAD_INPUT))
-KEYPAD_INPUT=0
+KEYPAD_INPUT=1
 endif
 
 ifeq (,$(USB_ON))

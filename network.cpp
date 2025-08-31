@@ -18,18 +18,18 @@ void rndis_start() {
 #ifdef USB_ON
   usb_gadget_add_rndis();
   usb_gadget_start();
-  usleep(500 * 1000);
-  system("ifconfig usb0 192.168.42.1");
-  system("/etc/init.d/S80dnsmasq restart");
+  // usleep(500 * 1000);
+  // system("ifconfig usb0 192.168.42.1");
+  // system("/etc/init.d/S80dnsmasq restart");
 #endif
 }
 
 void rndis_stop() {
-#ifdef USB_ON
-  usb_gadget_stop();
-  system("/etc/init.d/S80dnsmasq stop");
-  usleep(500 * 1000);
-#endif
+// #ifdef USB_ON
+//   usb_gadget_stop();
+//   system("/etc/init.d/S80dnsmasq stop");
+//   usleep(500 * 1000);
+// #endif
 }
 
 std::map<std::string, std::string> get_ip_addr() {
