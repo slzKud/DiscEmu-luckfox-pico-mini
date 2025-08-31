@@ -19,7 +19,7 @@ Currently at prototype stage.
 |Function | Pin# |
 |---------|------|
 |OLED SCL | 15   |
-|OLED SDA | 24   |
+|OLED SDA | 14   |
 |Up Btn   | 6    |
 |Down Btn | 7    |
 |Enter Btn| 8    |
