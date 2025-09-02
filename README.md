@@ -41,7 +41,7 @@ Change makefile with the new TOOLCHAIN_PREFIX,U8G2_PREFIX and BOOST_PREFIX, and 
 
 - `S50usbdevice` in this repo is modified from the official image, with CD-ROM support added and fix some bugs, please use this verison with DiscEmu instead of the stock one.
 
-- Place `disc-emu`,`run_usb.sh` and `make_fat32_img.sh` at `/root`, and make it start at boot up by creating `/etc/init.d/S80autorun` and `/root/autorun.sh`
+- Place `disc-emu`,`run_usb.sh` and `make_fat32_img.sh` at `/root/discemu`, and make it start at boot up by creating `/etc/init.d/S80autorun` and `/root/autorun.sh`
 
 - `/etc/init.d/S80autorun`
 
