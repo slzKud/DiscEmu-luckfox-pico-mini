@@ -38,6 +38,12 @@ probe_function() {
                     ro=0)
                         echo "ums_ro=off" >> $CONFIG_FILE
                         ;;
+                    floppy=0)
+                        echo "ums_floppy=off" >> $CONFIG_FILE
+                        ;;
+                    floppy=1)
+                        echo "ums_floppy=on" >> $CONFIG_FILE
+                        ;;
                 esac
             done
             ;;
@@ -93,7 +99,7 @@ case "$1" in
         echo "Supported functions: $SUPPORTED_FUNCS"
         echo ""
         echo "Function options:"
-        echo "  MSC Storage:  file=/path/to/image size=<MB> ro=<0|1>"
+        echo "  MSC Storage:  file=/path/to/image size=<MB> ro=<0|1> floppy=<0|1>"
         echo "  CD-ROM:       iso=/path/to/image.iso"
         echo ""
         echo "Examples:"

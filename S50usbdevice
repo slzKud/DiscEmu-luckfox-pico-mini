@@ -35,6 +35,7 @@ UMS_BLOCK_TYPE=fat
 UMS_BLOCK_AUTO_MOUNT=off
 UMS_BLOCK_CDROM=off
 UMS_RO=0
+UMS_FLOPPY=0
 
 UVC_DIR=${USB_FUNCTIONS_DIR}/uvc.gs6/
 UVC_STREAMING_DIR=${UVC_DIR}/streaming/
@@ -58,7 +59,7 @@ function_init()
 	test_write 1 ${USB_FUNCTIONS_DIR}/uac2.gs0/p_feature_unit
 	mkdir ${USB_FUNCTIONS_DIR}/ffs.adb
 	mkdir ${USB_FUNCTIONS_DIR}/ffs.ntb
-	mkdir ${USB_FUNCTIONS_DIR}/mtp.gs0
+	mkdir ${USB_FUNCTIONS_DIR}/ffs.mtp
 	mkdir ${USB_FUNCTIONS_DIR}/rndis.gs0
 	#write /config/usb_gadget/g1/functions/rndis.gs0/wceis 1
 	mkdir ${USB_FUNCTIONS_DIR}/acm.gs6
@@ -137,9 +138,18 @@ parse_parameter()
 			if [ "$VAR" != "off" ]; then
 				echo "Set UMS read-only"
 				UMS_RO=1
-			fi
+			else
 				UMS_RO=0
-			;;
+			fi
+                        ;;
+		ums_floppy)
+			if [ "$VAR" != "off" ]; then
+				echo "Set UMS Floppy"
+				UMS_FLOPPY=1
+			else
+				UMS_FLOPPY=0
+			fi
+                        ;;
 	esac
 }
 
@@ -193,38 +203,43 @@ parameter_init()
 				;;
 		esac
 	done < $USB_CONFIG_FILE
-
+	#VID=0x3346
 	case "$CONFIG_STRING" in
 		ums)
-			PID=0x0000
+			PID=0x1008
 			;;
 		mtp)
-			PID=0x0001
+			PID=0x0100
+			VID=0x1D6B
 			;;
 		adb)
-			PID=0x0006
+			PID=0x4EE0
+			VID=0x18D1
 			;;
 		mtp_adb | adb_mtp)
-			PID=0x0011
+			PID=0x4EE1
+			VID=0x18D1
 			;;
 		ums_adb | adb_ums)
-			PID=0x0018
+			PID=0x4EE2
+			VID=0x18D1
 			;;
 		acm)
-			PID=0x1005
+			PID=0x1003
 			;;
 		*)
 			PID=0x0019
 	esac
 }
 
-use_os_desc()
-{
-	if [ $MTP_EN = on ];then
-		echo "MTP" > ${USB_FUNCTIONS_DIR}/mtp.gs0/os_desc/interface.MTP/compatible_id
-		echo 1 > ${USB_CONFIGFS_DIR}/os_desc/use
-	fi
-}
+#use_os_desc()
+#{
+	#if [ $MTP_EN = on ];then
+		# mkdir -p /dev/usb-ffs/mtp
+    	# mount -t functionfs mtp /dev/usb-ffs/mtp
+		# echo 1 > ${USB_CONFIGFS_DIR}/os_desc/use
+	#fi
+#}
 
 pre_run_binary()
 {
@@ -238,6 +253,13 @@ pre_run_binary()
 		mkdir /dev/usb-ffs/ntb -m 0770
 		mount -o uid=2000,gid=2000 -t functionfs ntb /dev/usb-ffs/ntb
 		# Not start app here
+	fi
+
+	if [ $MTP_EN = on ];then
+		mkdir -p /dev/usb-ffs/mtp -m 0770
+    	        mount -o uid=2000,gid=2000 -t functionfs mtp /dev/usb-ffs/mtp
+		/usr/sbin/umtprd &
+        sleep 3
 	fi
 
 	# Add uvc app here with start-stop-daemon
@@ -340,7 +362,7 @@ bind_functions()
 	fi
 
 	test $RNDIS_EN = on && syslink_function rndis.gs0
-	test $MTP_EN = on && syslink_function mtp.gs0
+	test $MTP_EN = on && syslink_function ffs.mtp
 	test $NTB_EN = on && syslink_function ffs.ntb
 	test $ADB_EN = on && syslink_function ffs.adb
 	test $ACM_EN = on && syslink_function acm.gs6
@@ -371,7 +393,16 @@ bind_functions()
 				mount ${UMS_BLOCK} /mnt/ums
 			fi
 		else
-			echo ${UMS_BLOCK} > ${USB_FUNCTIONS_DIR}/mass_storage.0/lun.0/file
+			if [ ! $UMS_BLOCK = "" ];then
+				echo ${UMS_BLOCK} > ${USB_FUNCTIONS_DIR}/mass_storage.0/lun.0/file
+			else
+				if [ $UMS_BLOCK_CDROM = on ];then
+					echo "" > ${USB_FUNCTIONS_DIR}/mass_storage.0/lun.0/file
+				fi
+			fi
+			if [ ! $UMS_BLOCK_CDROM = on ];then
+				echo ${UMS_FLOPPY} > ${USB_FUNCTIONS_DIR}/mass_storage.0/lun.0/floppy
+			fi
 		fi
 		syslink_function mass_storage.0
 	fi
@@ -381,14 +412,11 @@ bind_functions()
 
 run_binary()
 {
-	if [ $MTP_EN = on ];then
-		start-stop-daemon --start --quiet --background --exec /usr/bin/mtp-server
-	fi
 	if [ $RNDIS_EN = on ];then
-
-	sleep .5
-	ifconfig usb0 172.32.0.70
-	ifconfig usb0 up
+		sleep .5
+		ifconfig usb0 172.32.0.70
+		ifconfig usb0 up
+        /etc/init.d/S80dnsmasq start
 	fi
 
 }
@@ -403,11 +431,32 @@ usb_device_stop()
 {
 	#echo "none" > ${USB_CONFIGFS_DIR}/UDC
 	program_kill adbd
-	program_kill mtp-server
-	ls ${USB_CONFIGS_DIR} | grep f[0-9] | xargs -I {} rm ${USB_CONFIGS_DIR}/{}
+	program_kill umtprd
+	#ls ${USB_CONFIGS_DIR} | grep f[0-9] | xargs -I {} rm ${USB_CONFIGS_DIR}/{}
 }
 
 case "$1" in
+probe)
+	if [ ! -e "/tmp/.usb_config" ]; then
+        echo "$0: Cannot find .usb_config"
+        exit 0
+    fi
+
+    if [ -e /tmp/.usb_config ]; then
+        USB_CONFIG_FILE=/tmp/.usb_config
+    fi
+
+	parameter_init
+    if [ -z $CONFIG_STRING ]; then
+        echo "$0: no function be selected"
+        exit 0
+    fi
+	test -d ${USB_CONFIGFS_DIR} || configfs_init
+	#use_os_desc
+	#echo $VID > ${USB_CONFIGFS_DIR}/idVendor
+	echo $PID > ${USB_CONFIGFS_DIR}/idProduct
+	bind_functions
+	;;
 start)
 	ifconfig lo up
     if [ ! -e "/tmp/.usb_config" ]; then
@@ -425,7 +474,8 @@ start)
         exit 0
     fi
 	test -d ${USB_CONFIGFS_DIR} || configfs_init
-	use_os_desc
+	#use_os_desc
+	#echo $VID > ${USB_CONFIGFS_DIR}/idVendor
 	echo $PID > ${USB_CONFIGFS_DIR}/idProduct
 	bind_functions
 	pre_run_binary
@@ -447,7 +497,7 @@ restart|reload)
 	sed -i "/USB_FORCE_CHANGED/d" /tmp/.usb_config
 	;;
 *)
-	echo "Usage: $0 {start|stop|restart}"
+	echo "Usage: $0 {probe|start|stop|restart}"
 	exit 1
 esac
 
