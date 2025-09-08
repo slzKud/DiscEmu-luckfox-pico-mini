@@ -24,7 +24,7 @@
 
 namespace fs = boost::filesystem;
 
-const std::string version = "0.1.5";
+const std::string version = "0.1.8";
 u8g2_t u8g2 = {};
 
 typedef enum{
@@ -39,6 +39,7 @@ typedef enum{
   MTP,
   MSD,
   MSC,
+  MSFD,
 } EMUStatus;
 
 typedef struct {
@@ -57,6 +58,8 @@ int action_status(std::any arg);
 int action_shutdown(std::any arg);
 int action_restart(std::any arg);
 int action_reset(std::any arg);
+int action_floppy_mode(std::any arg);
+int action_ro_mode(std::any arg);
 int action_do_nothing(std::any arg);
 
 ImageInfo image_info;
@@ -88,7 +91,7 @@ void reset_disc_emu() {
     action_reset(NULL);
     return;
   }
-  if(emu_status==MSD){
+  if(emu_status==MSD || emu_status==MSFD){
     // 如果当前模拟的是USB磁盘，也直接重启，因为清除file之后就是一个空磁盘，没有意义。
     action_reset(NULL);
     return;
@@ -142,6 +145,13 @@ int action_disk_emu(std::any arg) {
     }
     emu_status=MSD;
     usb_gadget_add_msc(path);
+  } else if (ext == ".flp") {
+    if(emu_status==MSC){
+      system(("echo \""+ path.string()+"\" > /etc/msc.flag").c_str());
+      action_reset(NULL);
+    }
+    emu_status=MSFD;
+    usb_gadget_add_floppy(path);
   }
   usb_gadget_start();
 
@@ -351,7 +361,7 @@ int action_file_browser(std::any arg) {
     } else {
       std::string ext = entry_path.extension().string();
       std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-      if (ext == ".iso" || ext == ".img") {
+      if (ext == ".iso" || ext == ".img" || ext == ".flp") {
         iso_menu_items.push_back(MenuItem{.name = entry_path.filename().string(),
                                           .action = action_disk_emu,
                                           .long_action = action_file_mamager,
@@ -389,7 +399,28 @@ int action_status(std::any arg) {
     status_menu_items.push_back(MenuItem{.name = pair.first + " IP"});
     status_menu_items.push_back(MenuItem{.name = pair.second});
   }
-
+  if(fs::exists("/etc/floppy.flag")){
+    status_menu_items.push_back(MenuItem{
+      .name = "Floppy Mode:ON",
+      .action = action_floppy_mode
+    });
+  }else{
+    status_menu_items.push_back(MenuItem{
+      .name = "Floppy Mode:OFF",
+      .action = action_floppy_mode
+    });
+  }
+  if(fs::exists("/etc/ro.flag")){
+    status_menu_items.push_back(MenuItem{
+      .name = "Read-Only Mode:ON",
+      .action = action_ro_mode
+    });
+  }else{
+    status_menu_items.push_back(MenuItem{
+      .name = "Read-Only Mode:OFF",
+      .action = action_ro_mode
+    });
+  }
   menu_init(&status_menu, &status_menu_items);
   menu_run(&status_menu, &u8g2);
   return 0;
@@ -490,6 +521,22 @@ int action_reset(std::any arg) {
   system("reboot");
   sleep(1000);
   return 0;
+}
+int action_floppy_mode(std::any arg) {
+  if(fs::exists("/etc/floppy.flag")){
+    system("rm -rf /etc/floppy.flag");
+  }else{
+    system("touch /etc/floppy.flag");
+  }
+  return action_reset(NULL);
+}
+int action_ro_mode(std::any arg) {
+  if(fs::exists("/etc/ro.flag")){
+    system("rm -rf /etc/ro.flag");
+  }else{
+    system("touch /etc/ro.flag");
+  }
+  return action_reset(NULL);
 }
 void runonce(void){
   if(fs::exists("/etc/rndis.flag")){

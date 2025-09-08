@@ -8,6 +8,7 @@ void usb_gadget_start();
 void usb_gadget_add_cdrom(boost::filesystem::path iso_path);
 void usb_gadget_add_cdrom();
 void usb_gadget_add_msc(boost::filesystem::path block_dev);
+void usb_gadget_add_floppy(boost::filesystem::path block_dev);
 void usb_gadget_add_rndis();
 void usb_gadget_add_mtp();
 #endif
