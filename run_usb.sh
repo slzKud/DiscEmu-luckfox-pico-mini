@@ -53,7 +53,7 @@ probe_function() {
             for opt in "$@"; do
                 case $opt in
                     iso=*)
-                        echo "ums_block=\"${opt#*=}\"" >> $CONFIG_FILE
+                        echo "ums_block=${opt#*=}" >> $CONFIG_FILE
                         ;;
                 esac
             done

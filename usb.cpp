@@ -12,7 +12,7 @@ void usb_switch_to_device_mode() {
 void usb_gadget_add_msc(fs::path block_dev) {
 #ifdef USB_ON
     fs::path path_absolute = fs::absolute(block_dev);
-    system(("./run_usb.sh probe msc file=\"" + path_absolute.string() + (fs::exists("/etc/floppy.flag")?"\" floppy=1 ":" ") + (fs::exists("/etc/ro.flag")?" ro=1":"")).c_str());
+    system(("./run_usb.sh probe msc file=\"" + path_absolute.string() + (fs::exists("/etc/floppy.flag")?"\" floppy=1 ":"\" ") + (fs::exists("/etc/ro.flag")?" ro=1":"")).c_str());
 #endif
 }
 
