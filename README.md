@@ -3,7 +3,7 @@
 
 A CD-ROM drive emulator based on Linux USB Gadget, on the [Luckfox Pico Mini](https://www.luckfox.com/Luckfox-Pico-Mini-A) (RV1103).
 
-Forked from [driver1998/DiscEmu](https://github.com/driver1998/DiscEmu), Same Function Version with Milk-V Duo is [slzkud/DiscEmu](https://github.com/slzKud/DiscEmu).
+Forked from [driver1998/DiscEmu](https://github.com/driver1998/DiscEmu), Same Function Version with Milk-V Duo is [slzkud/DiscEmu-Milk-V-Duo](https://github.com/slzKud/DiscEmu-Milk-V-Duo).
 
 Currently at prototype stage.
 
