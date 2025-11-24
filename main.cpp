@@ -24,9 +24,9 @@
 
 namespace fs = boost::filesystem;
 
-const std::string version = "0.1.8";
+const std::string version = "0.2.1";
 u8g2_t u8g2 = {};
-
+int main_menu_flag=0;
 typedef enum{
   KB = 1,
   MB = 2,
@@ -61,6 +61,7 @@ int action_reset(std::any arg);
 int action_floppy_mode(std::any arg);
 int action_ro_mode(std::any arg);
 int action_do_nothing(std::any arg);
+int action_main_menu(std::any arg);
 
 ImageInfo image_info;
 EMUStatus emu_status=NO_EMU;
@@ -99,11 +100,15 @@ void reset_disc_emu() {
   if(emu_status==MSC){
     // 如果当前模拟的是USB光驱，只清除file。
     system("echo "" > /sys/kernel/config/usb_gadget/rockchip/functions/mass_storage.0/lun.0/file");
+    if(main_menu_flag==0){
+      action_main_menu(NULL);
+    }
     return;
   }
 }
 
 int action_main_menu(std::any arg) {
+  main_menu_flag=1;
   Menu menu { .title = "DiscEmu" };
   menu_init(&menu, &main_menu);
   menu_run(&menu, &u8g2);
@@ -137,10 +142,13 @@ int action_disk_emu(std::any arg) {
   usb_gadget_stop();
   if (ext == ".iso") {
     emu_status=MSC;
+    system(("echo \""+ path.string()+"\" > /etc/msc.flag").c_str());
+    system("sync");
     usb_gadget_add_cdrom(path);
   } else if (ext == ".img") {
     if(emu_status==MSC){
       system(("echo \""+ path.string()+"\" > /etc/msc.flag").c_str());
+      system("sync");
       action_reset(NULL);
     }
     emu_status=MSD;
@@ -148,6 +156,7 @@ int action_disk_emu(std::any arg) {
   } else if (ext == ".flp") {
     if(emu_status==MSC){
       system(("echo \""+ path.string()+"\" > /etc/msc.flag").c_str());
+      system("sync");
       action_reset(NULL);
     }
     emu_status=MSFD;
@@ -161,6 +170,8 @@ int action_disk_emu(std::any arg) {
       MenuItem{.name = "Eject",
                .action =
                   [](std::any) {
+                    system("rm -rf /etc/msc.flag");
+                    system("sync");
                     reset_disc_emu();
                     usleep(500 * 1000);
                     return -1;
@@ -556,7 +567,7 @@ void runonce(void){
     if(fs::exists(k)){
       std::cout << "file exists."
               << std::endl;
-      system("rm -rf /etc/msc.flag");
+      //system("rm -rf /etc/msc.flag");
       action_disk_emu(fs::path(k));
       return;
     }
