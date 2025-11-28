@@ -7,6 +7,8 @@ Forked from [driver1998/DiscEmu](https://github.com/driver1998/DiscEmu), Same Fu
 
 Currently at prototype stage.
 
+For information on the hardware PCB and enclosure implementation, please refer to [oshwhub](https://oshwhub.com/deadfatty/disk-emu).
+
 ![prototype](img/prototype_luckfox.jpg)
 
 ## Hardware info
