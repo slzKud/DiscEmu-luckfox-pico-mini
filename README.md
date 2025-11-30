@@ -7,7 +7,7 @@ Forked from [driver1998/DiscEmu](https://github.com/driver1998/DiscEmu), Same Fu
 
 Currently at prototype stage.
 
-For information on the hardware PCB and enclosure implementation, please refer to [oshwhub](https://oshwhub.com/deadfatty/disk-emu).
+For information on the hardware PCB and enclosure implementation, please refer to deadfatty's [oshwhub](https://oshwhub.com/deadfatty/disk-emu).
 
 ![prototype](img/prototype_luckfox.jpg)
 
@@ -36,6 +36,8 @@ This app depends on the [libu8g2arm](libu8g2arm) library and [boost](https://sou
 Change makefile with the new TOOLCHAIN_PREFIX,U8G2_PREFIX and BOOST_PREFIX, and use ``make`` to compile program.
 
 - If you need to disable USB because need to debug, use ``make USB_ON=0`` to compile program. 
+
+- If using the hardware PCB version from deadfatty, please use `make SCREEN_ROTATE=1 DEADFATTY_KEYPAD_INPUT=1` to adjust the screen display orientation and the reversed layout of the UP and DOWN keys.
 
 ## Usage
 

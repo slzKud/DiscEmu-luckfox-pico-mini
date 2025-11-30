@@ -22,6 +22,11 @@
 #include "usb.h"
 #include "util.h"
 
+#ifdef SCREEN_ROTATE
+#define DISCEMU_SCREEN_ROTATE U8G2_R2
+#else
+#define DISCEMU_SCREEN_ROTATE U8G2_R0
+#endif
 namespace fs = boost::filesystem;
 
 const std::string version = "0.2.1";
@@ -599,7 +604,7 @@ int main(void) {
   std::cout <<"spi mode,spi number 0" << std::endl;
   const int RES_PIN = 22;
   const int DC_PIN = 21;
-  u8g2_Setup_ssd1306_128x64_noname_f(&u8g2, U8G2_R0, u8x8_byte_arm_linux_hw_spi,
+  u8g2_Setup_ssd1306_128x64_noname_f(&u8g2, DISCEMU_SCREEN_ROTATE, u8x8_byte_arm_linux_hw_spi,
                                      u8x8_arm_linux_gpio_and_delay);
 
   u8x8_SetPin(p_u8x8, U8X8_PIN_SPI_CLOCK, U8X8_PIN_NONE);
@@ -616,7 +621,7 @@ int main(void) {
   }
   #else
   std::cout <<"i2c mode,i2c number "<< 3 << std::endl;
-  u8g2_Setup_ssd1306_i2c_128x64_noname_f(&u8g2, U8G2_R0, u8x8_byte_arm_linux_hw_i2c,
+  u8g2_Setup_ssd1306_i2c_128x64_noname_f(&u8g2, DISCEMU_SCREEN_ROTATE, u8x8_byte_arm_linux_hw_i2c,
                                      u8x8_arm_linux_gpio_and_delay);
 
   u8x8_SetPin(p_u8x8, U8X8_PIN_I2C_CLOCK, U8X8_PIN_NONE);

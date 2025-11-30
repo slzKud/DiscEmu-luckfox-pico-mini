@@ -14,7 +14,7 @@ extern "C" {
 #define GPIO_GROUP_B 1
 #define GPIO_GROUP_C 2
 #define GPIO_GROUP_D 3
-
+//#define DEADFATTY_KEYPAD_INPUT
 const int ROT_S1 = GPIO_NUMBER(1,GPIO_GROUP_C,0);
 const int ROT_S2 = GPIO_NUMBER(1,GPIO_GROUP_C,1);
 const int ROT_KEY = GPIO_NUMBER(1,GPIO_GROUP_C,2);
@@ -35,10 +35,15 @@ void *input_thread_func() {
     std::chrono::steady_clock::time_point press_start_time;
 
     while (!thread_stop) {
+        #ifdef DEADFATTY_KEYPAD_INPUT
+        s1 = getGPIOValue(ROT_S2);
+        s2 = getGPIOValue(ROT_S1);
+        key = getGPIOValue(ROT_KEY);
+        #else
         s1 = getGPIOValue(ROT_S1);
         s2 = getGPIOValue(ROT_S2);
         key = getGPIOValue(ROT_KEY);
-
+        #endif
         // 按键检测逻辑
         if (skey != key) {
             if (!key) { // 按键按下
