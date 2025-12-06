@@ -31,7 +31,7 @@ For information on the hardware PCB and enclosure implementation, please refer t
 
 You can build this with the [official SDK](https://github.com/LuckfoxTECH/luckfox-pico).
 
-This app depends on the [libu8g2arm](libu8g2arm) library and [boost](https://sourceforge.net/projects/boost/files/boost/1.88.0/) library. 
+This app depends on the [libu8g2arm](https://github.com/antiprism/libu8g2arm) library and [boost](https://sourceforge.net/projects/boost/files/boost/1.88.0/) library. 
 
 Change makefile with the new TOOLCHAIN_PREFIX,U8G2_PREFIX and BOOST_PREFIX, and use ``make`` to compile program.
 
