@@ -7,7 +7,7 @@ Forked from [driver1998/DiscEmu](https://github.com/driver1998/DiscEmu), Same Fu
 
 Currently at prototype stage.
 
-For information on the hardware PCB and enclosure implementation, please refer to deadfatty's [oshwhub](https://oshwhub.com/deadfatty/disk-emu).
+For information on the hardware PCB and enclosure implementation, please refer to [deadfatty's oshwhub](https://oshwhub.com/deadfatty/disk-emu) or [ITBoot](https://makerworld.com/zh/models/2060553-itboot-can-simulate-usb-drives-optical-drives-and#profileId-2224754).
 
 ![prototype](img/prototype_luckfox.jpg)
 
@@ -38,6 +38,8 @@ Change makefile with the new TOOLCHAIN_PREFIX,U8G2_PREFIX and BOOST_PREFIX, and 
 - If you need to disable USB because need to debug, use ``make USB_ON=0`` to compile program. 
 
 - If using the hardware PCB version from deadfatty, please use `make SCREEN_ROTATE=1 DEADFATTY_KEYPAD_INPUT=1` to adjust the screen display orientation and the reversed layout of the UP and DOWN keys.
+
+- If using the hardware PCB version from ITBoot, please use `make SCREEN_ROTATE=1` to adjust the screen display orientation.
 
 ## Usage
 
@@ -89,7 +91,7 @@ cd "$OLD_PWD"
 
 - If you need to use "File Transfer", you need to compile [uMTP-Responder](https://github.com/viveris/uMTP-Responder). After compiling, place the compiled `umtprd` in `/usr/bin` and the [`umtprd.conf`](umtprd/umtprd.conf) in `/etc/umtprd`.
 
-- DiscEmu looks for ISO images at `isos` in the working directory, so `/root/isos` as configured above. You might link iso folder with /mnt/sdcard to use whole sdcard.
+- DiscEmu looks for ISO images at `isos` in the working directory, so `/root/discemu/isos` as configured above. You might link iso folder with /mnt/sdcard to use whole sdcard.
 
 - Due to Linux kernel limitations, DVD images are not fully supported. Also there is a ~2.2GiB file size limit, there is a third-party patch to bypass this, see https://lkml.org/lkml/2015/3/7/388 for more details.
 
